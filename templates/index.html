@@ -156,10 +156,14 @@
                     const resultDiv = document.getElementById('result');
 
                     // Display processed data
-                    resultDiv.innerHTML = '<h2>Processed Data:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    if (data.error) {
+                        resultDiv.innerHTML = '<p>' + data.error + '</p>';
+                    } else {
+                        resultDiv.innerHTML = '<h2>Processed Data:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
 
-                    // Show message that data has been saved to the database
-                    resultDiv.innerHTML += '<p>Data has been saved to the database.</p>';
+                        // Show message that data has been saved to the database
+                        resultDiv.innerHTML += '<p>Data has been saved to the database.</p>';
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
