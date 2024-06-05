@@ -5,6 +5,7 @@ from azure.storage.blob import BlobServiceClient
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,26 +55,31 @@ def process_image_with_model(blob_url):
         ]
     )
 
-    message1 = llm.invoke([hmessage1])
-    extracted_data = {}
-    content_string = message1.content
-    lines = content_string.split("\n")
-    for line in lines:
-        if line.strip():
-            key, value = line.split(":", 1)
-            extracted_data[key.strip()] = value.strip()
+    try:
+        message1 = llm.invoke([hmessage1])
+        extracted_data = {}
+        content_string = message1.content
+        lines = content_string.split("\n")
+        for line in lines:
+            if ":" in line:
+                key, value = line.split(":", 1)
+                extracted_data[key.strip()] = value.strip()
 
-    # Store the extracted data in Azure Cosmos DB
-    container.upsert_item({
-        "id": str(extracted_data.get("Invoice Number", "")),  # Use a unique identifier for the document
-        "invoice_number": extracted_data.get("Invoice Number", ""),
-        "invoice_date": extracted_data.get("Invoice Date", ""),
-        "due_date": extracted_data.get("Due Date", ""),
-        "customer_name": extracted_data.get("Customer Name", ""),
-        "customer_address": extracted_data.get("Customer Address", ""),
-        "total_amount": extracted_data.get("Total Amount", ""),
-        "blob_url": blob_url  # Store the URL of the uploaded image
-    })
+        # Store the extracted data in Azure Cosmos DB
+        container.upsert_item({
+            "id": str(extracted_data.get("Invoice Number", "")),  # Use a unique identifier for the document
+            "invoice_number": extracted_data.get("Invoice Number", ""),
+            "invoice_date": extracted_data.get("Invoice Date", ""),
+            "due_date": extracted_data.get("Due Date", ""),
+            "customer_name": extracted_data.get("Customer Name", ""),
+            "customer_address": extracted_data.get("Customer Address", ""),
+            "total_amount": extracted_data.get("Total Amount", ""),
+            "blob_url": blob_url  # Store the URL of the uploaded image
+        })
+
+    except Exception as e:
+        logging.error(f"Error processing image: {e}")
+        extracted_data = {"error": "Failed to process the image. Please try again."}
 
     return extracted_data
 
@@ -95,5 +101,4 @@ def upload_image():
     return redirect(request.url)
 
 if __name__ == "__main__":
-    
     app.run(debug=True)
